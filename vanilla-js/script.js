@@ -6,6 +6,8 @@ let state = {
     cupom: '',
     link: '',
     imagem: '',
+    categoria: '',
+    linkCategoria: '',
     isLoading: false
 };
 
@@ -23,6 +25,8 @@ const elements = {
     cupom: document.getElementById('cupom'),
     link: document.getElementById('link'),
     imagem: document.getElementById('imagem'),
+    categoria: document.getElementById('categoria'),
+    linkCategoria: document.getElementById('linkCategoria'),
     clearBtn: document.getElementById('clearBtn'),
     toast: document.getElementById('toast'),
     toastMessage: document.getElementById('toastMessage')
@@ -41,8 +45,8 @@ function showToast(message, isError = false) {
 
 // Função para gerar mensagem formatada
 function getFormattedMessage() {
-    const { titulo, preco, cupom, link } = state;
-    return `🛍️ ${titulo || '[Título do Produto]'}
+    const { titulo, preco, cupom, link, categoria, linkCategoria } = state;
+    let message = `🛍️ ${titulo || '[Título do Produto]'}
 
 🎁 R$ ${preco || '[Preço]'}${cupom ? `
 
@@ -50,6 +54,17 @@ function getFormattedMessage() {
 
 🛒 Confira Aqui
 ${link || '[Link do Produto]'}`;
+    
+    if (categoria) {
+        message += `
+
+--------------------------
+
+🏪 ${categoria}
+${linkCategoria || link || '[Link da Categoria]'}`;
+    }
+    
+    return message;
 }
 
 // Função para atualizar preview
@@ -263,6 +278,8 @@ function clearFields() {
         cupom: '',
         link: '',
         imagem: '',
+        categoria: '',
+        linkCategoria: '',
         isLoading: false
     };
 
@@ -272,6 +289,8 @@ function clearFields() {
     elements.cupom.value = '';
     elements.link.value = '';
     elements.imagem.value = '';
+    elements.categoria.value = '';
+    elements.linkCategoria.value = '';
 
     updatePreview();
     showToast('Campos limpos com sucesso!');
@@ -311,6 +330,16 @@ elements.link.addEventListener('input', (e) => {
 
 elements.imagem.addEventListener('input', (e) => {
     state.imagem = e.target.value;
+    updatePreview();
+});
+
+elements.categoria.addEventListener('input', (e) => {
+    state.categoria = e.target.value;
+    updatePreview();
+});
+
+elements.linkCategoria.addEventListener('input', (e) => {
+    state.linkCategoria = e.target.value;
     updatePreview();
 });
 
