@@ -1,0 +1,318 @@
+// Estado da aplicação
+let state = {
+    productLink: '',
+    titulo: '',
+    preco: '',
+    cupom: '',
+    link: '',
+    imagem: '',
+    isLoading: false
+};
+
+// Elementos DOM
+const elements = {
+    productLink: document.getElementById('productLink'),
+    extractBtn: document.getElementById('extractBtn'),
+    extractIcon: document.getElementById('extractIcon'),
+    loadingIcon: document.getElementById('loadingIcon'),
+    imagePreview: document.getElementById('imagePreview'),
+    messagePreview: document.getElementById('messagePreview'),
+    copyBtn: document.getElementById('copyBtn'),
+    titulo: document.getElementById('titulo'),
+    preco: document.getElementById('preco'),
+    cupom: document.getElementById('cupom'),
+    link: document.getElementById('link'),
+    imagem: document.getElementById('imagem'),
+    clearBtn: document.getElementById('clearBtn'),
+    toast: document.getElementById('toast'),
+    toastMessage: document.getElementById('toastMessage')
+};
+
+// Função para mostrar toast
+function showToast(message, isError = false) {
+    elements.toastMessage.textContent = message;
+    elements.toast.className = `toast ${isError ? 'error' : ''}`;
+    elements.toast.classList.remove('hidden');
+    
+    setTimeout(() => {
+        elements.toast.classList.add('hidden');
+    }, 3000);
+}
+
+// Função para gerar mensagem formatada
+function getFormattedMessage() {
+    const { titulo, preco, cupom, link } = state;
+    return `🛍️ ${titulo || '[Título do Produto]'}
+
+🎁 R$ ${preco || '[Preço]'}${cupom ? `
+
+🏷️ ${cupom}` : ''}
+
+🛒 Confira Aqui
+${link || '[Link do Produto]'}`;
+}
+
+// Função para atualizar preview
+function updatePreview() {
+    elements.messagePreview.textContent = getFormattedMessage();
+    
+    // Atualizar imagem
+    if (state.imagem) {
+        elements.imagePreview.innerHTML = `<img src="${state.imagem}" alt="Produto" onerror="this.parentElement.classList.add('hidden')">`;
+        elements.imagePreview.classList.remove('hidden');
+    } else {
+        elements.imagePreview.classList.add('hidden');
+    }
+}
+
+// Função para extrair informações do produto (real)
+async function extractProductInfo() {
+    if (!state.productLink.trim()) {
+        showToast('Por favor, insira um link do produto', true);
+        return;
+    }
+
+    state.isLoading = true;
+    elements.extractBtn.disabled = true;
+    elements.extractIcon.classList.add('hidden');
+    elements.loadingIcon.classList.remove('hidden');
+
+    try {
+        // Usar proxy CORS alternativo
+        const proxyUrl = 'https://corsproxy.io/?';
+        const targetUrl = encodeURIComponent(state.productLink);
+        
+        const response = await fetch(proxyUrl + targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Não foi possível acessar a página');
+        }
+        
+        const html = await response.text();
+        
+        // Criar um parser DOM temporário
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Extrair informações usando seletores específicos
+        const extractedData = extractFromHTML(doc, state.productLink);
+        
+        if (!extractedData.titulo && !extractedData.preco) {
+            throw new Error('Não foi possível extrair informações do produto');
+        }
+        
+        // Atualizar estado
+        state.titulo = extractedData.titulo || '[Título não encontrado]';
+        state.preco = extractedData.preco || '[Preço não encontrado]';
+        state.link = state.productLink;
+        state.imagem = extractedData.imagem || '';
+
+        // Atualizar campos
+        elements.titulo.value = state.titulo;
+        elements.preco.value = state.preco;
+        elements.link.value = state.link;
+        elements.imagem.value = state.imagem;
+
+        updatePreview();
+        showToast('Informações extraídas com sucesso!');
+
+    } catch (error) {
+        console.error('Erro:', error);
+        showToast('Erro ao extrair informações: ' + error.message, true);
+    } finally {
+        state.isLoading = false;
+        elements.extractBtn.disabled = false;
+        elements.extractIcon.classList.remove('hidden');
+        elements.loadingIcon.classList.add('hidden');
+    }
+}
+
+// Função para extrair dados do HTML focando em meta tags
+function extractFromHTML(doc, url) {
+    let titulo = '';
+    let preco = '';
+    let imagem = '';
+    
+    // Priorizar meta tags Open Graph (mais confiáveis)
+    titulo = getAttribute(doc, 'meta[property="og:title"]', 'content') ||
+             getAttribute(doc, 'meta[name="twitter:title"]', 'content') ||
+             getTextContent(doc, 'title') ||
+             getTextContent(doc, 'h1');
+    
+    imagem = getAttribute(doc, 'meta[property="og:image"]', 'content') ||
+             getAttribute(doc, 'meta[name="twitter:image"]', 'content') ||
+             getAttribute(doc, 'link[rel="image_src"]', 'href');
+    
+    // Para preço, tentar meta tags específicas primeiro
+    preco = getAttribute(doc, 'meta[property="product:price:amount"]', 'content') ||
+            getAttribute(doc, 'meta[name="price"]', 'content') ||
+            getAttribute(doc, 'meta[property="og:price:amount"]', 'content');
+    
+    // Se não encontrou preço nas meta tags, buscar no conteúdo
+    if (!preco) {
+        const hostname = new URL(url).hostname.toLowerCase();
+        
+        if (hostname.includes('mercadolivre')) {
+            preco = extractPrice(doc, '.andes-money-amount__fraction, .price-tag-fraction, [class*="price"], .ui-pdp-price__second-line .andes-money-amount__fraction');
+        } else if (hostname.includes('amazon')) {
+            preco = extractPrice(doc, '.a-price-whole, .a-offscreen, [class*="price"]');
+        } else if (hostname.includes('magazineluiza')) {
+            preco = extractPrice(doc, '[data-testid="price-value"], .price-template__text, [class*="price"]');
+        } else if (hostname.includes('americanas') || hostname.includes('submarino')) {
+            preco = extractPrice(doc, '[data-testid="price-value"], .sales-price, [class*="price"]');
+        } else {
+            preco = extractPrice(doc, '[class*="price"], [class*="preco"], [class*="valor"]');
+        }
+    }
+    
+    return {
+        titulo: titulo.trim().substring(0, 200),
+        preco: formatPrice(preco),
+        imagem: imagem
+    };
+}
+
+// Funções auxiliares para extração
+function getTextContent(doc, selectors) {
+    const selectorList = selectors.split(', ');
+    for (const selector of selectorList) {
+        const element = doc.querySelector(selector);
+        if (element && element.textContent.trim()) {
+            return element.textContent.trim();
+        }
+    }
+    return '';
+}
+
+function getAttribute(doc, selectors, attribute) {
+    const selectorList = selectors.split(', ');
+    for (const selector of selectorList) {
+        const element = doc.querySelector(selector);
+        if (element && element.getAttribute(attribute)) {
+            return element.getAttribute(attribute);
+        }
+    }
+    return '';
+}
+
+function extractPrice(doc, selectors) {
+    const selectorList = selectors.split(', ');
+    const prices = [];
+    
+    for (const selector of selectorList) {
+        const elements = doc.querySelectorAll(selector);
+        elements.forEach(el => {
+            const text = el.textContent.trim();
+            const parentText = el.parentElement ? el.parentElement.textContent.toLowerCase() : '';
+            
+            // Ignorar se contém palavras relacionadas a parcelamento
+            if (parentText.includes('parcela') || parentText.includes('/mês') || 
+                parentText.includes('x de') || parentText.includes('sem juros')) {
+                return;
+            }
+            
+            const match = text.match(/\d+(?:[.,]\d{2})?/);
+            if (match) {
+                const cleanPrice = match[0].replace(',', '.');
+                const value = Math.floor(parseFloat(cleanPrice));
+                
+                // Filtrar valores muito baixos (provavelmente parcelas)
+                if (value >= 50) {
+                    prices.push(value);
+                }
+            }
+        });
+    }
+    
+    console.log('Preços encontrados:', prices);
+    return prices.length > 0 ? Math.min(...prices).toString() : '';
+}
+
+function formatPrice(price) {
+    if (!price) return '';
+    return price.replace(/[^0-9]/g, '');
+}
+
+// Função para copiar mensagem
+async function copyMessage() {
+    try {
+        await navigator.clipboard.writeText(getFormattedMessage());
+        showToast('Mensagem copiada para a área de transferência!');
+    } catch (error) {
+        // Fallback para navegadores mais antigos
+        const textArea = document.createElement('textarea');
+        textArea.value = getFormattedMessage();
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast('Mensagem copiada para a área de transferência!');
+    }
+}
+
+// Função para limpar campos
+function clearFields() {
+    state = {
+        productLink: '',
+        titulo: '',
+        preco: '',
+        cupom: '',
+        link: '',
+        imagem: '',
+        isLoading: false
+    };
+
+    elements.productLink.value = '';
+    elements.titulo.value = '';
+    elements.preco.value = '';
+    elements.cupom.value = '';
+    elements.link.value = '';
+    elements.imagem.value = '';
+
+    updatePreview();
+    showToast('Campos limpos com sucesso!');
+}
+
+// Event listeners
+elements.productLink.addEventListener('input', (e) => {
+    state.productLink = e.target.value;
+});
+
+elements.extractBtn.addEventListener('click', extractProductInfo);
+
+elements.copyBtn.addEventListener('click', copyMessage);
+
+elements.clearBtn.addEventListener('click', clearFields);
+
+// Event listeners para campos de edição
+elements.titulo.addEventListener('input', (e) => {
+    state.titulo = e.target.value;
+    updatePreview();
+});
+
+elements.preco.addEventListener('input', (e) => {
+    state.preco = e.target.value;
+    updatePreview();
+});
+
+elements.cupom.addEventListener('input', (e) => {
+    state.cupom = e.target.value;
+    updatePreview();
+});
+
+elements.link.addEventListener('input', (e) => {
+    state.link = e.target.value;
+    updatePreview();
+});
+
+elements.imagem.addEventListener('input', (e) => {
+    state.imagem = e.target.value;
+    updatePreview();
+});
+
+// Inicializar preview
+updatePreview();
