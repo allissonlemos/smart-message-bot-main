@@ -2,6 +2,9 @@
 let state = {
     productLink: '',
     titulo: '',
+    precoDe: '',
+    valorCalculo: '',
+    desconto: '',
     preco: '',
     cupom: '',
     link: '',
@@ -21,6 +24,9 @@ const elements = {
     messagePreview: document.getElementById('messagePreview'),
     copyBtn: document.getElementById('copyBtn'),
     titulo: document.getElementById('titulo'),
+    precoDe: document.getElementById('precoDe'),
+    valorCalculo: document.getElementById('valorCalculo'),
+    desconto: document.getElementById('desconto'),
     preco: document.getElementById('preco'),
     cupom: document.getElementById('cupom'),
     link: document.getElementById('link'),
@@ -43,12 +49,33 @@ function showToast(message, isError = false) {
     }, 3000);
 }
 
+// Função para calcular preço com desconto
+function calcularPrecoComDesconto() {
+    const valorOriginal = parseFloat(state.valorCalculo) || 0;
+    const valorDesconto = parseFloat(state.desconto) || 0;
+    
+    if (valorOriginal > 0 && valorDesconto > 0) {
+        const precoFinal = valorOriginal - valorDesconto;
+        state.preco = Math.max(0, precoFinal).toString();
+        elements.preco.value = state.preco;
+        updatePreview();
+    }
+}
+
 // Função para gerar mensagem formatada
 function getFormattedMessage() {
-    const { titulo, preco, cupom, link, categoria, linkCategoria } = state;
-    let message = `🛍️ ${titulo || '[Título do Produto]'}
+    const { titulo, precoDe, preco, cupom, link, categoria, linkCategoria } = state;
+    let message = `🛍️ ${titulo || '[Título do Produto]'}`;
+    
+    if (precoDe) {
+        message += `
 
-🎁 R$ ${preco || '[Preço]'}${cupom ? `
+💸 ~De R$ ${precoDe}~`;
+    }
+    
+    message += `
+
+🎁 *Por R$ ${preco || '[Preço]'}*${cupom ? `
 
 🏷️ ${cupom}` : ''}
 
@@ -60,7 +87,7 @@ ${link || '[Link do Produto]'}`;
 
 --------------------------
 
-🏪 ${categoria}
+⭐ ${categoria}
 ${linkCategoria || link || '[Link da Categoria]'}`;
     }
     
@@ -274,6 +301,9 @@ function clearFields() {
     state = {
         productLink: '',
         titulo: '',
+        precoDe: '',
+        valorCalculo: '',
+        desconto: '',
         preco: '',
         cupom: '',
         link: '',
@@ -285,6 +315,9 @@ function clearFields() {
 
     elements.productLink.value = '';
     elements.titulo.value = '';
+    elements.precoDe.value = '';
+    elements.valorCalculo.value = '';
+    elements.desconto.value = '';
     elements.preco.value = '';
     elements.cupom.value = '';
     elements.link.value = '';
@@ -311,6 +344,21 @@ elements.clearBtn.addEventListener('click', clearFields);
 elements.titulo.addEventListener('input', (e) => {
     state.titulo = e.target.value;
     updatePreview();
+});
+
+elements.precoDe.addEventListener('input', (e) => {
+    state.precoDe = e.target.value;
+    updatePreview();
+});
+
+elements.valorCalculo.addEventListener('input', (e) => {
+    state.valorCalculo = e.target.value;
+    calcularPrecoComDesconto();
+});
+
+elements.desconto.addEventListener('input', (e) => {
+    state.desconto = e.target.value;
+    calcularPrecoComDesconto();
 });
 
 elements.preco.addEventListener('input', (e) => {

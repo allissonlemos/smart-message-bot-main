@@ -29,6 +29,9 @@
                     <span id="extractIcon">🪄</span>
                     <span id="loadingIcon" class="hidden">⏳</span>
                 </button>
+                <button id="clearBtn" class="btn-danger">
+                    🗑️
+                </button>
             </div>
         </div>
 
@@ -64,8 +67,25 @@
             </div>
             
             <div class="form-group">
-                <label for="preco">🎁 Preço</label>
-                <input type="text" id="preco" placeholder="Ex: 4.319">
+                <label for="precoDe">💸 De (opcional)</label>
+                <input type="text" id="precoDe" placeholder="Ex: 299">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valorCalculo">💵 Valor para Cálculo</label>
+                    <input type="text" id="valorCalculo" placeholder="Ex: 250">
+                </div>
+                
+                <div class="form-group">
+                    <label for="desconto">💰 Desconto</label>
+                    <input type="text" id="desconto" placeholder="Ex: 50">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="preco">🎁 Por (calculado)</label>
+                <input type="text" id="preco" placeholder="Resultado: 200" readonly>
             </div>
             
             <div class="form-group">
@@ -93,11 +113,6 @@
                 <input type="url" id="linkCategoria" placeholder="Link específico da categoria">
             </div>
         </div>
-
-        <!-- Clear Button -->
-        <button id="clearBtn" class="btn-secondary">
-            🗑️ Limpar Campos
-        </button>
 
         <!-- Footer -->
         <p class="footer">Cole o link e as informações serão extraídas automaticamente</p>
