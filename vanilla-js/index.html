@@ -15,22 +15,78 @@
             <p>Formate mensagens de produtos para grupos de vendas</p>
         </div>
 
-        <!-- Product Link Extractor -->
-        <div class="section">
-            <h2>🔍 Extrair Informações</h2>
-            <div class="input-group">
-                <input 
-                    type="url" 
-                    id="productLink" 
-                    placeholder="Cole o link do produto aqui"
-                    class="input-field"
-                >
-                <button id="extractBtn" class="btn-primary">
-                    <span id="extractIcon">🪄</span>
-                    <span id="loadingIcon" class="hidden">⏳</span>
-                </button>
-                <button id="clearBtn" class="btn-danger">
-                    🗑️
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="geral">🛍️ Geral</button>
+            <button class="tab-btn" data-tab="shopee">🛒 Shopee</button>
+        </div>
+
+        <!-- Tab Content: Geral -->
+        <div id="tab-geral" class="tab-content active">
+            <!-- Product Link Extractor -->
+            <div class="section">
+                <h2>🔍 Extrair Informações</h2>
+                <div class="input-group">
+                    <input 
+                        type="url" 
+                        id="productLink" 
+                        placeholder="Cole o link do produto aqui"
+                        class="input-field"
+                    >
+                    <button id="extractBtn" class="btn-primary">
+                        <span id="extractIcon">🪄</span>
+                        <span id="loadingIcon" class="hidden">⏳</span>
+                    </button>
+                    <button id="clearBtn" class="btn-danger">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Shopee -->
+        <div id="tab-shopee" class="tab-content hidden">
+            <!-- Shopee Extractor -->
+            <div class="section">
+                <h2>🛒 Extrair da Shopee</h2>
+                <div class="input-group">
+                    <input 
+                        type="url" 
+                        id="shopeeLink" 
+                        placeholder="Cole o link do produto da Shopee"
+                        class="input-field"
+                    >
+                    <button id="shopeeExtractBtn" class="btn-primary">
+                        <span id="shopeeExtractIcon">🪄</span>
+                        <span id="shopeeLoadingIcon" class="hidden">⏳</span>
+                    </button>
+                    <button id="shopeeClearBtn" class="btn-danger">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Shopee Manual Fields -->
+            <div class="section">
+                <h2>✏️ Dados da Shopee</h2>
+                
+                <div class="form-group">
+                    <label for="shopeeTitulo">📱 Título do Produto</label>
+                    <textarea id="shopeeTitulo" placeholder="Título será extraído automaticamente" rows="2"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="shopeePreco">💰 Preço (apenas números)</label>
+                    <input type="text" id="shopeePreco" placeholder="Preço será extraído automaticamente">
+                </div>
+                
+                <div class="form-group">
+                    <label for="shopeeImagem">📸 URL da Imagem</label>
+                    <input type="url" id="shopeeImagem" placeholder="Imagem será extraída automaticamente">
+                </div>
+                
+                <button id="shopeeApplyBtn" class="btn-primary" style="width: 100%;">
+                    ✅ Aplicar Dados da Shopee
                 </button>
             </div>
         </div>

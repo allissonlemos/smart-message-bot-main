@@ -11,7 +11,8 @@ let state = {
     imagem: '',
     categoria: '',
     linkCategoria: '',
-    isLoading: false
+    isLoading: false,
+    activeTab: 'geral'
 };
 
 // Elementos DOM
@@ -35,7 +36,17 @@ const elements = {
     linkCategoria: document.getElementById('linkCategoria'),
     clearBtn: document.getElementById('clearBtn'),
     toast: document.getElementById('toast'),
-    toastMessage: document.getElementById('toastMessage')
+    toastMessage: document.getElementById('toastMessage'),
+    // Elementos da Shopee
+    shopeeLink: document.getElementById('shopeeLink'),
+    shopeeTitulo: document.getElementById('shopeeTitulo'),
+    shopeePreco: document.getElementById('shopeePreco'),
+    shopeeImagem: document.getElementById('shopeeImagem'),
+    shopeeExtractBtn: document.getElementById('shopeeExtractBtn'),
+    shopeeExtractIcon: document.getElementById('shopeeExtractIcon'),
+    shopeeLoadingIcon: document.getElementById('shopeeLoadingIcon'),
+    shopeeApplyBtn: document.getElementById('shopeeApplyBtn'),
+    shopeeClearBtn: document.getElementById('shopeeClearBtn')
 };
 
 // Função para mostrar toast
@@ -105,6 +116,123 @@ function updatePreview() {
     } else {
         elements.imagePreview.classList.add('hidden');
     }
+}
+
+// Função para extrair da Shopee
+async function extractShopeeData() {
+    const link = elements.shopeeLink.value.trim();
+    if (!link) {
+        showToast('Cole o link da Shopee primeiro', true);
+        return;
+    }
+
+    elements.shopeeExtractBtn.disabled = true;
+    elements.shopeeExtractIcon.classList.add('hidden');
+    elements.shopeeLoadingIcon.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(link)}`);
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Extrair título
+        const titulo = getAttribute(doc, 'meta[property="og:title"]', 'content') ||
+                      getTextContent(doc, 'title') || '';
+        
+        // Extrair imagem
+        const imagem = getAttribute(doc, 'meta[property="og:image"]', 'content') || '';
+        
+        // Extrair preço do texto da página
+        const bodyText = doc.body ? doc.body.textContent : '';
+        const priceMatches = bodyText.match(/R\$\s*([\d.,]+)/g) || [];
+        const validPrices = priceMatches
+            .map(p => p.replace(/[^\d.,]/g, ''))
+            .filter(p => {
+                const num = parseFloat(p.replace(',', '.'));
+                return num >= 10;
+            })
+            .sort((a, b) => parseFloat(b.replace(',', '.')) - parseFloat(a.replace(',', '.')));
+        
+        const preco = validPrices.length > 0 ? validPrices[0].replace(/[^0-9]/g, '') : '';
+        
+        // Preencher campos
+        elements.shopeeTitulo.value = titulo.trim().substring(0, 200);
+        elements.shopeePreco.value = preco;
+        elements.shopeeImagem.value = imagem;
+        
+        showToast('Dados extraídos da Shopee!');
+        
+    } catch (error) {
+        showToast('Erro ao extrair da Shopee. Preencha manualmente.', true);
+    } finally {
+        elements.shopeeExtractBtn.disabled = false;
+        elements.shopeeExtractIcon.classList.remove('hidden');
+        elements.shopeeLoadingIcon.classList.add('hidden');
+    }
+}
+function applyShopeeData() {
+    const link = elements.shopeeLink.value.trim();
+    const titulo = elements.shopeeTitulo.value.trim();
+    const preco = elements.shopeePreco.value.trim();
+    const imagem = elements.shopeeImagem.value.trim();
+    
+    if (!titulo && !preco) {
+        showToast('Preencha pelo menos o título e preço', true);
+        return;
+    }
+    
+    // Atualizar campos principais
+    if (titulo) {
+        elements.titulo.value = titulo;
+        state.titulo = titulo;
+    }
+    
+    if (preco) {
+        elements.preco.value = preco;
+        state.preco = preco;
+    }
+    
+    if (link) {
+        elements.link.value = link;
+        state.link = link;
+    }
+    
+    if (imagem) {
+        elements.imagem.value = imagem;
+        state.imagem = imagem;
+    }
+    
+    updatePreview();
+    showToast('Dados da Shopee aplicados com sucesso!');
+}
+
+// Função para limpar campos da Shopee
+function clearShopeeFields() {
+    elements.shopeeLink.value = '';
+    elements.shopeeTitulo.value = '';
+    elements.shopeePreco.value = '';
+    elements.shopeeImagem.value = '';
+    showToast('Campos da Shopee limpos!');
+}
+
+// Função para aplicar dados da Shopee
+
+// Função para alternar abas
+function switchTab(tabName) {
+    state.activeTab = tabName;
+    
+    // Atualizar botões das abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // Atualizar conteúdo das abas
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 }
 
 // Função para extrair informações do produto (real)
@@ -339,6 +467,26 @@ elements.extractBtn.addEventListener('click', extractProductInfo);
 elements.copyBtn.addEventListener('click', copyMessage);
 
 elements.clearBtn.addEventListener('click', clearFields);
+
+// Event listeners para Shopee
+elements.shopeeLink.addEventListener('input', (e) => {
+    // Auto-extrair quando colar link
+    if (e.target.value.includes('shopee.com.br') && e.target.value.length > 30) {
+        setTimeout(extractShopeeData, 500);
+    }
+});
+
+elements.shopeeExtractBtn.addEventListener('click', extractShopeeData);
+elements.shopeeApplyBtn.addEventListener('click', applyShopeeData);
+elements.shopeeClearBtn.addEventListener('click', clearShopeeFields);
+
+// Event listeners para abas
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const tabName = e.target.getAttribute('data-tab');
+        switchTab(tabName);
+    });
+});
 
 // Event listeners para campos de edição
 elements.titulo.addEventListener('input', (e) => {
