@@ -143,45 +143,114 @@ async function extractShopeeData() {
     elements.shopeeLoadingIcon.classList.remove('hidden');
 
     try {
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(link)}`);
+        // Primeiro, seguir redirecionamentos se for link encurtado
+        let finalUrl = link;
+        if (link.includes('s.shopee.com.br')) {
+            try {
+                const redirectResponse = await fetch(`https://corsproxy.io/?${encodeURIComponent(link)}`, {
+                    method: 'HEAD',
+                    redirect: 'follow'
+                });
+                finalUrl = redirectResponse.url.replace('https://corsproxy.io/?', '');
+                finalUrl = decodeURIComponent(finalUrl);
+            } catch (e) {
+                finalUrl = link; // Usar link original se falhar
+            }
+        }
+
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(finalUrl)}`);
         const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         
-        // Extrair título
-        const titulo = getAttribute(doc, 'meta[property="og:title"]', 'content') ||
-                      getTextContent(doc, 'title') || '';
+        // Extrair título com seletores específicos da Shopee
+        let titulo = getAttribute(doc, 'meta[property="og:title"]', 'content') ||
+                    getAttribute(doc, 'meta[name="twitter:title"]', 'content') ||
+                    getTextContent(doc, 'span[data-testid="pdp-product-title"], .shopee-page-product-detail__title, .item-header__title') ||
+                    getTextContent(doc, 'h1') ||
+                    getTextContent(doc, 'title');
         
         // Extrair imagem
-        const imagem = getAttribute(doc, 'meta[property="og:image"]', 'content') || '';
+        const imagem = getAttribute(doc, 'meta[property="og:image"]', 'content') ||
+                      getAttribute(doc, 'meta[name="twitter:image"]', 'content');
         
-        // Extrair preço do texto da página
-        const bodyText = doc.body ? doc.body.textContent : '';
-        const priceMatches = bodyText.match(/R\$\s*([\d.,]+)/g) || [];
-        const validPrices = priceMatches
-            .map(p => p.replace(/[^\d.,]/g, ''))
-            .filter(p => {
-                const num = parseFloat(p.replace(',', '.'));
-                return num >= 10;
-            })
-            .sort((a, b) => parseFloat(b.replace(',', '.')) - parseFloat(a.replace(',', '.')));
+        // Extrair preços da Shopee com múltiplas estratégias
+        let precoAtual = '';
+        let precoAnterior = '';
         
-        const preco = validPrices.length > 0 ? validPrices[0].replace(/[^0-9]/g, '') : '';
+        // Estratégia 1: Buscar em dados estruturados JSON-LD
+        const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+        for (let script of scripts) {
+            try {
+                const data = JSON.parse(script.textContent);
+                if (data.offers && data.offers.price) {
+                    precoAtual = data.offers.price.toString();
+                }
+                if (data.offers && data.offers.priceSpecification) {
+                    precoAnterior = data.offers.priceSpecification.price?.toString() || '';
+                }
+            } catch (e) {}
+        }
         
-        // Aplicar dados diretamente aos campos principais
+        // Estratégia 2: Buscar por seletores CSS específicos da Shopee
+        if (!precoAtual) {
+            precoAtual = getTextContent(doc, '.pqTWkA, ._3n5NQx, .flex-no-wrap, [data-testid="pdp-price"], .shopee-price') ||
+                        getTextContent(doc, '.price-current, .current-price, .sale-price');
+        }
+        
+        if (!precoAnterior) {
+            precoAnterior = getTextContent(doc, '.original-price, .price-original, .old-price, .before-price');
+        }
+        
+        // Estratégia 3: Buscar por padrões de preço no texto
+        if (!precoAtual) {
+            const bodyText = doc.body ? doc.body.textContent : '';
+            const priceMatches = bodyText.match(/R\$\s*([\d.,]+)/g) || [];
+            
+            if (priceMatches.length > 0) {
+                // Filtrar e ordenar preços encontrados
+                const validPrices = priceMatches
+                    .map(p => {
+                        const cleanPrice = p.replace(/[^\d.,]/g, '');
+                        const numPrice = parseFloat(cleanPrice.replace(',', '.'));
+                        return { original: p, clean: cleanPrice, numeric: numPrice };
+                    })
+                    .filter(p => p.numeric >= 1) // Preço mínimo de R$ 1
+                    .sort((a, b) => b.numeric - a.numeric); // Ordenar do maior para o menor
+                
+                if (validPrices.length >= 2) {
+                    precoAnterior = validPrices[0].clean.replace(/[^0-9]/g, ''); // Maior preço (anterior)
+                    precoAtual = validPrices[1].clean.replace(/[^0-9]/g, ''); // Segundo maior (atual)
+                } else if (validPrices.length === 1) {
+                    precoAtual = validPrices[0].clean.replace(/[^0-9]/g, '');
+                }
+            }
+        }
+        
+        // Limpar preços (manter apenas números)
+        precoAtual = precoAtual.toString().replace(/[^0-9]/g, '');
+        precoAnterior = precoAnterior.toString().replace(/[^0-9]/g, '');
+        
+        // Aplicar dados aos campos
         if (titulo) {
-            elements.titulo.value = titulo.trim().substring(0, 200);
-            state.titulo = titulo.trim().substring(0, 200);
+            const tituloLimpo = titulo.trim().substring(0, 200);
+            elements.titulo.value = tituloLimpo;
+            state.titulo = tituloLimpo;
         }
         
-        if (preco) {
-            elements.preco.value = preco;
-            state.preco = preco;
+        if (precoAtual) {
+            elements.preco.value = precoAtual;
+            state.preco = precoAtual;
         }
         
-        if (link) {
-            elements.link.value = link;
-            state.link = link;
+        if (precoAnterior && precoAnterior !== precoAtual) {
+            elements.precoDe.value = precoAnterior;
+            state.precoDe = precoAnterior;
+        }
+        
+        if (finalUrl) {
+            elements.link.value = finalUrl;
+            state.link = finalUrl;
         }
         
         if (imagem) {
@@ -190,10 +259,13 @@ async function extractShopeeData() {
         }
         
         updatePreview();
-        showToast('Dados da Shopee extraídos com sucesso!');
+        
+        const message = `Dados da Shopee extraídos!${precoAnterior ? ' (Preço anterior encontrado)' : ''}`;
+        showToast(message);
         
     } catch (error) {
-        showToast('Erro ao extrair da Shopee. Tente novamente.', true);
+        console.error('Erro Shopee:', error);
+        showToast('Erro ao extrair da Shopee. Verifique o link e tente novamente.', true);
     } finally {
         elements.shopeeExtractBtn.disabled = false;
         elements.shopeeExtractIcon.classList.remove('hidden');
