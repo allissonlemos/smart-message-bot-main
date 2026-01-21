@@ -42,7 +42,19 @@ const elements = {
     shopeeExtractBtn: document.getElementById('shopeeExtractBtn'),
     shopeeExtractIcon: document.getElementById('shopeeExtractIcon'),
     shopeeLoadingIcon: document.getElementById('shopeeLoadingIcon'),
-    shopeeClearBtn: document.getElementById('shopeeClearBtn')
+    shopeeClearBtn: document.getElementById('shopeeClearBtn'),
+    // Elementos do MagaLu
+    magaluLink: document.getElementById('magaluLink'),
+    magaluExtractBtn: document.getElementById('magaluExtractBtn'),
+    magaluExtractIcon: document.getElementById('magaluExtractIcon'),
+    magaluLoadingIcon: document.getElementById('magaluLoadingIcon'),
+    magaluClearBtn: document.getElementById('magaluClearBtn'),
+    // Elementos da Amazon
+    amazonLink: document.getElementById('amazonLink'),
+    amazonExtractBtn: document.getElementById('amazonExtractBtn'),
+    amazonExtractIcon: document.getElementById('amazonExtractIcon'),
+    amazonLoadingIcon: document.getElementById('amazonLoadingIcon'),
+    amazonClearBtn: document.getElementById('amazonClearBtn')
 };
 
 // Função para mostrar toast
@@ -185,9 +197,148 @@ async function extractShopeeData() {
     }
 }
 
-// Função para limpar campos da Shopee
-function clearShopeeFields() {
-    elements.shopeeLink.value = '';
+// Função para extrair do MagaLu
+async function extractMagaluData() {
+    const link = elements.magaluLink.value.trim();
+    if (!link) {
+        showToast('Cole o link do MagaLu primeiro', true);
+        return;
+    }
+
+    elements.magaluExtractBtn.disabled = true;
+    elements.magaluExtractIcon.classList.add('hidden');
+    elements.magaluLoadingIcon.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(link)}`);
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        const titulo = getAttribute(doc, 'meta[property="og:title"]', 'content') ||
+                      getTextContent(doc, 'title') || '';
+        
+        const imagem = getAttribute(doc, 'meta[property="og:image"]', 'content') || '';
+        
+        const bodyText = doc.body ? doc.body.textContent : '';
+        const priceMatches = bodyText.match(/R\$\s*([\d.,]+)/g) || [];
+        const validPrices = priceMatches
+            .map(p => p.replace(/[^\d.,]/g, ''))
+            .filter(p => {
+                const num = parseFloat(p.replace(',', '.'));
+                return num >= 10;
+            })
+            .sort((a, b) => parseFloat(b.replace(',', '.')) - parseFloat(a.replace(',', '.')));
+        
+        const preco = validPrices.length > 0 ? validPrices[0].replace(/[^0-9]/g, '') : '';
+        
+        if (titulo) {
+            elements.titulo.value = titulo.trim().substring(0, 200);
+            state.titulo = titulo.trim().substring(0, 200);
+        }
+        
+        if (preco) {
+            elements.preco.value = preco;
+            state.preco = preco;
+        }
+        
+        if (link) {
+            elements.link.value = link;
+            state.link = link;
+        }
+        
+        if (imagem) {
+            elements.imagem.value = imagem;
+            state.imagem = imagem;
+        }
+        
+        updatePreview();
+        showToast('Dados do MagaLu extraídos com sucesso!');
+        
+    } catch (error) {
+        showToast('Erro ao extrair do MagaLu. Tente novamente.', true);
+    } finally {
+        elements.magaluExtractBtn.disabled = false;
+        elements.magaluExtractIcon.classList.remove('hidden');
+        elements.magaluLoadingIcon.classList.add('hidden');
+    }
+}
+
+// Função para extrair da Amazon
+async function extractAmazonData() {
+    const link = elements.amazonLink.value.trim();
+    if (!link) {
+        showToast('Cole o link da Amazon primeiro', true);
+        return;
+    }
+
+    elements.amazonExtractBtn.disabled = true;
+    elements.amazonExtractIcon.classList.add('hidden');
+    elements.amazonLoadingIcon.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(link)}`);
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        const titulo = getAttribute(doc, 'meta[property="og:title"]', 'content') ||
+                      getTextContent(doc, 'title') || '';
+        
+        const imagem = getAttribute(doc, 'meta[property="og:image"]', 'content') || '';
+        
+        const bodyText = doc.body ? doc.body.textContent : '';
+        const priceMatches = bodyText.match(/R\$\s*([\d.,]+)/g) || [];
+        const validPrices = priceMatches
+            .map(p => p.replace(/[^\d.,]/g, ''))
+            .filter(p => {
+                const num = parseFloat(p.replace(',', '.'));
+                return num >= 10;
+            })
+            .sort((a, b) => parseFloat(b.replace(',', '.')) - parseFloat(a.replace(',', '.')));
+        
+        const preco = validPrices.length > 0 ? validPrices[0].replace(/[^0-9]/g, '') : '';
+        
+        if (titulo) {
+            elements.titulo.value = titulo.trim().substring(0, 200);
+            state.titulo = titulo.trim().substring(0, 200);
+        }
+        
+        if (preco) {
+            elements.preco.value = preco;
+            state.preco = preco;
+        }
+        
+        if (link) {
+            elements.link.value = link;
+            state.link = link;
+        }
+        
+        if (imagem) {
+            elements.imagem.value = imagem;
+            state.imagem = imagem;
+        }
+        
+        updatePreview();
+        showToast('Dados da Amazon extraídos com sucesso!');
+        
+    } catch (error) {
+        showToast('Erro ao extrair da Amazon. Tente novamente.', true);
+    } finally {
+        elements.amazonExtractBtn.disabled = false;
+        elements.amazonExtractIcon.classList.remove('hidden');
+        elements.amazonLoadingIcon.classList.add('hidden');
+    }
+}
+
+// Funções para limpar campos
+function clearMagaluFields() {
+    elements.magaluLink.value = '';
+    clearFields();
+}
+
+function clearAmazonFields() {
+    elements.amazonLink.value = '';
     clearFields();
 }
 
@@ -441,9 +592,13 @@ elements.copyBtn.addEventListener('click', copyMessage);
 
 elements.clearBtn.addEventListener('click', clearFields);
 
-// Event listeners para Shopee
-elements.shopeeExtractBtn.addEventListener('click', extractShopeeData);
-elements.shopeeClearBtn.addEventListener('click', clearShopeeFields);
+// Event listeners para MagaLu
+elements.magaluExtractBtn.addEventListener('click', extractMagaluData);
+elements.magaluClearBtn.addEventListener('click', clearMagaluFields);
+
+// Event listeners para Amazon
+elements.amazonExtractBtn.addEventListener('click', extractAmazonData);
+elements.amazonClearBtn.addEventListener('click', clearAmazonFields);
 
 // Event listeners para abas
 document.querySelectorAll('.tab-btn').forEach(btn => {

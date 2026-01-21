@@ -19,6 +19,8 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="mercadolivre">🛒 Mercado Livre</button>
             <button class="tab-btn" data-tab="shopee">🛍️ Shopee</button>
+            <button class="tab-btn" data-tab="magalu">🚪 MagaLu</button>
+            <button class="tab-btn" data-tab="amazon">📦 Amazon</button>
         </div>
 
         <!-- Tab Content: Mercado Livre -->
@@ -65,9 +67,49 @@
                     </button>
                 </div>
             </div>
+        <!-- Tab Content: MagaLu -->
+        <div id="tab-magalu" class="tab-content hidden">
+            <div class="section">
+                <h2>🔍 Extrair Informações</h2>
+                <div class="input-group">
+                    <input 
+                        type="url" 
+                        id="magaluLink" 
+                        placeholder="Cole o link do produto do Magazine Luiza aqui"
+                        class="input-field"
+                    >
+                    <button id="magaluExtractBtn" class="btn-primary">
+                        <span id="magaluExtractIcon">🪄</span>
+                        <span id="magaluLoadingIcon" class="hidden">⏳</span>
+                    </button>
+                    <button id="magaluClearBtn" class="btn-danger">
+                        🗑️
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="separator"></div>
+        <!-- Tab Content: Amazon -->
+        <div id="tab-amazon" class="tab-content hidden">
+            <div class="section">
+                <h2>🔍 Extrair Informações</h2>
+                <div class="input-group">
+                    <input 
+                        type="url" 
+                        id="amazonLink" 
+                        placeholder="Cole o link do produto da Amazon aqui"
+                        class="input-field"
+                    >
+                    <button id="amazonExtractBtn" class="btn-primary">
+                        <span id="amazonExtractIcon">🪄</span>
+                        <span id="amazonLoadingIcon" class="hidden">⏳</span>
+                    </button>
+                    <button id="amazonClearBtn" class="btn-danger">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        </div></div>
 
         <!-- Message Preview -->
         <div class="section">
