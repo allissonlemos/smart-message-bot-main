@@ -126,7 +126,11 @@ function updatePreview() {
     }
 }
 
-// Função para extrair da Shopee
+// Função para limpar campos da Shopee
+function clearShopeeFields() {
+    elements.shopeeLink.value = '';
+    clearFields();
+}
 async function extractShopeeData() {
     const link = elements.shopeeLink.value.trim();
     if (!link) {
@@ -592,13 +596,29 @@ elements.copyBtn.addEventListener('click', copyMessage);
 
 elements.clearBtn.addEventListener('click', clearFields);
 
+// Event listeners para Shopee
+if (elements.shopeeExtractBtn) {
+    elements.shopeeExtractBtn.addEventListener('click', extractShopeeData);
+}
+if (elements.shopeeClearBtn) {
+    elements.shopeeClearBtn.addEventListener('click', clearShopeeFields);
+}
+
 // Event listeners para MagaLu
-elements.magaluExtractBtn.addEventListener('click', extractMagaluData);
-elements.magaluClearBtn.addEventListener('click', clearMagaluFields);
+if (elements.magaluExtractBtn) {
+    elements.magaluExtractBtn.addEventListener('click', extractMagaluData);
+}
+if (elements.magaluClearBtn) {
+    elements.magaluClearBtn.addEventListener('click', clearMagaluFields);
+}
 
 // Event listeners para Amazon
-elements.amazonExtractBtn.addEventListener('click', extractAmazonData);
-elements.amazonClearBtn.addEventListener('click', clearAmazonFields);
+if (elements.amazonExtractBtn) {
+    elements.amazonExtractBtn.addEventListener('click', extractAmazonData);
+}
+if (elements.amazonClearBtn) {
+    elements.amazonClearBtn.addEventListener('click', clearAmazonFields);
+}
 
 // Event listeners para abas
 document.querySelectorAll('.tab-btn').forEach(btn => {
