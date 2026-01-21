@@ -12,7 +12,7 @@ let state = {
     categoria: '',
     linkCategoria: '',
     isLoading: false,
-    activeTab: 'geral'
+    activeTab: 'mercadolivre'
 };
 
 // Elementos DOM
@@ -39,13 +39,9 @@ const elements = {
     toastMessage: document.getElementById('toastMessage'),
     // Elementos da Shopee
     shopeeLink: document.getElementById('shopeeLink'),
-    shopeeTitulo: document.getElementById('shopeeTitulo'),
-    shopeePreco: document.getElementById('shopeePreco'),
-    shopeeImagem: document.getElementById('shopeeImagem'),
     shopeeExtractBtn: document.getElementById('shopeeExtractBtn'),
     shopeeExtractIcon: document.getElementById('shopeeExtractIcon'),
     shopeeLoadingIcon: document.getElementById('shopeeLoadingIcon'),
-    shopeeApplyBtn: document.getElementById('shopeeApplyBtn'),
     shopeeClearBtn: document.getElementById('shopeeClearBtn')
 };
 
@@ -156,67 +152,44 @@ async function extractShopeeData() {
         
         const preco = validPrices.length > 0 ? validPrices[0].replace(/[^0-9]/g, '') : '';
         
-        // Preencher campos
-        elements.shopeeTitulo.value = titulo.trim().substring(0, 200);
-        elements.shopeePreco.value = preco;
-        elements.shopeeImagem.value = imagem;
+        // Aplicar dados diretamente aos campos principais
+        if (titulo) {
+            elements.titulo.value = titulo.trim().substring(0, 200);
+            state.titulo = titulo.trim().substring(0, 200);
+        }
         
-        showToast('Dados extraídos da Shopee!');
+        if (preco) {
+            elements.preco.value = preco;
+            state.preco = preco;
+        }
+        
+        if (link) {
+            elements.link.value = link;
+            state.link = link;
+        }
+        
+        if (imagem) {
+            elements.imagem.value = imagem;
+            state.imagem = imagem;
+        }
+        
+        updatePreview();
+        showToast('Dados da Shopee extraídos com sucesso!');
         
     } catch (error) {
-        showToast('Erro ao extrair da Shopee. Preencha manualmente.', true);
+        showToast('Erro ao extrair da Shopee. Tente novamente.', true);
     } finally {
         elements.shopeeExtractBtn.disabled = false;
         elements.shopeeExtractIcon.classList.remove('hidden');
         elements.shopeeLoadingIcon.classList.add('hidden');
     }
 }
-function applyShopeeData() {
-    const link = elements.shopeeLink.value.trim();
-    const titulo = elements.shopeeTitulo.value.trim();
-    const preco = elements.shopeePreco.value.trim();
-    const imagem = elements.shopeeImagem.value.trim();
-    
-    if (!titulo && !preco) {
-        showToast('Preencha pelo menos o título e preço', true);
-        return;
-    }
-    
-    // Atualizar campos principais
-    if (titulo) {
-        elements.titulo.value = titulo;
-        state.titulo = titulo;
-    }
-    
-    if (preco) {
-        elements.preco.value = preco;
-        state.preco = preco;
-    }
-    
-    if (link) {
-        elements.link.value = link;
-        state.link = link;
-    }
-    
-    if (imagem) {
-        elements.imagem.value = imagem;
-        state.imagem = imagem;
-    }
-    
-    updatePreview();
-    showToast('Dados da Shopee aplicados com sucesso!');
-}
 
 // Função para limpar campos da Shopee
 function clearShopeeFields() {
     elements.shopeeLink.value = '';
-    elements.shopeeTitulo.value = '';
-    elements.shopeePreco.value = '';
-    elements.shopeeImagem.value = '';
-    showToast('Campos da Shopee limpos!');
+    clearFields();
 }
-
-// Função para aplicar dados da Shopee
 
 // Função para alternar abas
 function switchTab(tabName) {
@@ -469,15 +442,7 @@ elements.copyBtn.addEventListener('click', copyMessage);
 elements.clearBtn.addEventListener('click', clearFields);
 
 // Event listeners para Shopee
-elements.shopeeLink.addEventListener('input', (e) => {
-    // Auto-extrair quando colar link
-    if (e.target.value.includes('shopee.com.br') && e.target.value.length > 30) {
-        setTimeout(extractShopeeData, 500);
-    }
-});
-
 elements.shopeeExtractBtn.addEventListener('click', extractShopeeData);
-elements.shopeeApplyBtn.addEventListener('click', applyShopeeData);
 elements.shopeeClearBtn.addEventListener('click', clearShopeeFields);
 
 // Event listeners para abas
