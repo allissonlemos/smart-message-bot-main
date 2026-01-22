@@ -705,6 +705,23 @@ async function copyMessage() {
     try {
         await navigator.clipboard.writeText(getFormattedMessage());
         showToast('Mensagem copiada para a área de transferência!');
+        
+        // Limpar campo de link da aba ativa e focar
+        const activeTab = state.activeTab;
+        if (activeTab === 'mercadolivre') {
+            elements.productLink.value = '';
+            elements.productLink.focus();
+        } else if (activeTab === 'shopee') {
+            elements.shopeeLink.value = '';
+            elements.shopeeLink.focus();
+        } else if (activeTab === 'magalu') {
+            elements.magaluLink.value = '';
+            elements.magaluLink.focus();
+        } else if (activeTab === 'amazon') {
+            elements.amazonLink.value = '';
+            elements.amazonLink.focus();
+        }
+        
     } catch (error) {
         // Fallback para navegadores mais antigos
         const textArea = document.createElement('textarea');
@@ -714,6 +731,22 @@ async function copyMessage() {
         document.execCommand('copy');
         document.body.removeChild(textArea);
         showToast('Mensagem copiada para a área de transferência!');
+        
+        // Limpar campo de link da aba ativa e focar
+        const activeTab = state.activeTab;
+        if (activeTab === 'mercadolivre') {
+            elements.productLink.value = '';
+            elements.productLink.focus();
+        } else if (activeTab === 'shopee') {
+            elements.shopeeLink.value = '';
+            elements.shopeeLink.focus();
+        } else if (activeTab === 'magalu') {
+            elements.magaluLink.value = '';
+            elements.magaluLink.focus();
+        } else if (activeTab === 'amazon') {
+            elements.amazonLink.value = '';
+            elements.amazonLink.focus();
+        }
     }
 }
 
