@@ -43,6 +43,11 @@ const elements = {
     shopeeExtractIcon: document.getElementById('shopeeExtractIcon'),
     shopeeLoadingIcon: document.getElementById('shopeeLoadingIcon'),
     shopeeClearBtn: document.getElementById('shopeeClearBtn'),
+    shopeePartnerId: document.getElementById('shopeePartnerId'),
+    shopeePartnerKey: document.getElementById('shopeePartnerKey'),
+    shopeeAffiliateBtn: document.getElementById('shopeeAffiliateBtn'),
+    shopeeAffiliateIcon: document.getElementById('shopeeAffiliateIcon'),
+    shopeeAffiliateLoading: document.getElementById('shopeeAffiliateLoading'),
     // Elementos do MagaLu
     magaluLink: document.getElementById('magaluLink'),
     magaluExtractBtn: document.getElementById('magaluExtractBtn'),
@@ -126,12 +131,100 @@ function updatePreview() {
     }
 }
 
+// Função para gerar assinatura HMAC-SHA256
+async function generateSignature(message, secret) {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+    return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+// Função para gerar link de afiliado da Shopee
+async function generateShopeeAffiliateLink() {
+    const partnerId = elements.shopeePartnerId.value.trim();
+    const partnerKey = elements.shopeePartnerKey.value.trim();
+    const productUrl = elements.shopeeLink.value.trim();
+    
+    if (!partnerId || !partnerKey) {
+        showToast('Configure seu Partner ID e Partner Key primeiro', true);
+        return;
+    }
+    
+    if (!productUrl) {
+        showToast('Cole o link do produto da Shopee primeiro', true);
+        return;
+    }
+    
+    elements.shopeeAffiliateBtn.disabled = true;
+    elements.shopeeAffiliateIcon.classList.add('hidden');
+    elements.shopeeAffiliateLoading.classList.remove('hidden');
+    
+    try {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const baseUrl = 'https://partner.shopeemobile.com';
+        const path = '/api/v3/affiliate_link/generate';
+        
+        // Parâmetros da requisição
+        const params = {
+            partner_id: parseInt(partnerId),
+            timestamp: timestamp,
+            sign_method: 'sha256',
+            requests: [{
+                product_link: productUrl,
+                custom_parameter: 'whatsapp_bot'
+            }]
+        };
+        
+        // Gerar assinatura
+        const baseString = `${path}${timestamp}${partnerKey}`;
+        const signature = await generateSignature(baseString, partnerKey);
+        
+        // Fazer requisição para API da Shopee
+        const response = await fetch(`${baseUrl}${path}?partner_id=${partnerId}&timestamp=${timestamp}&sign_method=sha256&sign=${signature}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
+        });
+        
+        const data = await response.json();
+        
+        if (data.error === 0 && data.response && data.response.length > 0) {
+            const affiliateLink = data.response[0].affiliate_link;
+            
+            // Atualizar campo de link com o link de afiliado
+            elements.link.value = affiliateLink;
+            state.link = affiliateLink;
+            
+            updatePreview();
+            showToast('Link de afiliado gerado com sucesso!');
+        } else {
+            throw new Error(data.message || 'Erro ao gerar link de afiliado');
+        }
+        
+    } catch (error) {
+        console.error('Erro API Shopee:', error);
+        showToast('Erro ao gerar link de afiliado. Verifique suas credenciais.', true);
+    } finally {
+        elements.shopeeAffiliateBtn.disabled = false;
+        elements.shopeeAffiliateIcon.classList.remove('hidden');
+        elements.shopeeAffiliateLoading.classList.add('hidden');
+    }
+}
 // Função para limpar campos da Shopee
 function clearShopeeFields() {
     elements.shopeeLink.value = '';
     clearFields();
 }
-async function extractShopeeData() {
     const link = elements.shopeeLink.value.trim();
     if (!link) {
         showToast('Cole o link da Shopee primeiro', true);
@@ -674,6 +767,9 @@ if (elements.shopeeExtractBtn) {
 }
 if (elements.shopeeClearBtn) {
     elements.shopeeClearBtn.addEventListener('click', clearShopeeFields);
+}
+if (elements.shopeeAffiliateBtn) {
+    elements.shopeeAffiliateBtn.addEventListener('click', generateShopeeAffiliateLink);
 }
 
 // Event listeners para MagaLu
