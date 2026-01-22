@@ -225,6 +225,9 @@ function clearShopeeFields() {
     elements.shopeeLink.value = '';
     clearFields();
 }
+
+// Função para extrair da Shopee
+async function extractShopeeData() {
     const link = elements.shopeeLink.value.trim();
     if (!link) {
         showToast('Cole o link da Shopee primeiro', true);
